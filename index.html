@@ -7,7 +7,7 @@
     <style>
       body {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background-color: #fff;
+        background-color: #ffffff;
         color: #111;
         text-align: center;
         padding: 40px 20px;
@@ -37,6 +37,10 @@
         margin: 5px;
         flex: 1;
         min-width: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
       }
 
       button:hover:not(:disabled) {
@@ -79,11 +83,11 @@
       }
 
       .fastest {
-        background-color: #d4edda; /* light green */
+        background-color: #d4edda;
       }
 
       .slowest {
-        background-color: #f8d7da; /* light red */
+        background-color: #f8d7da;
       }
 
       .button-row {
@@ -93,6 +97,27 @@
         max-width: 600px;
         justify-content: center;
         flex-wrap: wrap;
+      }
+
+      /* Control buttons section with distinct background */
+      .control-row {
+        background-color: #e6f7ff;
+        padding: 15px;
+        border-radius: 12px;
+        border: 1px solid #b3e0ff;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+        width: 100%;
+        max-width: 600px;
+      }
+
+      .action-section {
+        background-color: #f9f9f9;
+        padding: 10px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        width: 100%;
+        max-width: 600px;
       }
 
       @media (max-width: 600px) {
@@ -106,29 +131,36 @@
   <body>
     <div id="time">00:00:00:000</div>
 
-    <div class="button-row">
-      <button id="toggle">Play</button>
-      <button id="reset">Reset</button>
+    <!-- Play / Reset section -->
+    <div class="control-row">
+      <div class="button-row">
+        <button id="toggle">▶️ Play</button>
+        <button id="reset">🔄 Reset</button>
+      </div>
     </div>
 
-    <div class="button-row">
-      <button id="btnA">Alertable</button>
-      <button id="btnB">Non Alertable</button>
+    <!-- Four action buttons -->
+    <div class="action-section">
+      <div class="button-row">
+        <button id="btnA">🟢 Alertable</button>
+        <button id="btnB">🔵 Non Alertable</button>
+      </div>
+      <div class="button-row">
+        <button id="btnC">🟡 Not able</button>
+        <button id="btnD">🔴 Not access page</button>
+      </div>
     </div>
 
-    <div class="button-row">
-      <button id="btnC">Not able</button>
-      <button id="btnD">not access page</button>
-    </div>
-
+    <!-- Count display -->
     <div class="counts">
       <div>Alertable: <span id="countA">0</span></div>
       <div>Non Alertable: <span id="countB">0</span></div>
       <div>Not able: <span id="countC">0</span></div>
-      <div>not access page: <span id="countD">0</span></div>
+      <div>Not access page: <span id="countD">0</span></div>
       <div><strong>Total:</strong> <span id="total">0</span></div>
     </div>
 
+    <!-- Log table -->
     <table>
       <thead>
         <tr>
@@ -208,18 +240,22 @@
           if (state.log && Array.isArray(state.log)) {
             log.push(...state.log);
           }
-          Object.assign(lastButtonClickTimes, state.lastButtonClickTimes || { A: 0, B: 0, C: 0, D: 0 });
+          Object.assign(
+            lastButtonClickTimes,
+            state.lastButtonClickTimes || { A: 0, B: 0, C: 0, D: 0 }
+          );
 
           if (running && state.startTime) {
             startTime = Date.now() - elapsedTime;
             start();
           } else {
+            elapsedTime = state.elapsedTime || 0;
             updateTime();
           }
 
           updateCounts();
           renderTable();
-          $("toggle").textContent = running ? "Pause" : "Play";
+          $("toggle").textContent = running ? "⏸️ Pause" : "▶️ Play";
         } catch (e) {
           console.error("Failed to load stopwatch state", e);
         }
@@ -235,7 +271,8 @@
         $("countB").textContent = clicks.B;
         $("countC").textContent = clicks.C;
         $("countD").textContent = clicks.D;
-        $("total").textContent = clicks.A + clicks.B + clicks.C + clicks.D;
+        $("total").textContent =
+          clicks.A + clicks.B + clicks.C + clicks.D;
         saveState();
       }
 
@@ -308,9 +345,12 @@
 
       $("toggle").onclick = () => {
         running = !running;
-        if (running) start();
-        else stop();
-        $("toggle").textContent = running ? "Pause" : "Play";
+        if (running) {
+          start();
+        } else {
+          stop();
+        }
+        $("toggle").textContent = running ? "⏸️ Pause" : "▶️ Play";
         saveState();
       };
 
@@ -320,10 +360,12 @@
         elapsedTime = 0;
         lastClickTime = null;
         running = false;
-        $("toggle").textContent = "Play";
+        $("toggle").textContent = "▶️ Play";
         Object.keys(clicks).forEach((k) => (clicks[k] = 0));
         log.length = 0;
-        Object.keys(lastButtonClickTimes).forEach(k => lastButtonClickTimes[k] = 0);
+        Object.keys(lastButtonClickTimes).forEach(
+          (k) => (lastButtonClickTimes[k] = 0)
+        );
         updateCounts();
         renderTable();
         updateTime();
