@@ -278,6 +278,13 @@
         saveState();
       };
 
+      // Alert on page reload or close
+      window.addEventListener("beforeunload", function (e) {
+        const confirmationMessage = "Are you sure you want to leave? Your stopwatch state will be lost if not saved.";
+        (e || window.event).returnValue = confirmationMessage; // For old browsers
+        return confirmationMessage; // For modern browsers
+      });
+
       window.onload = () => {
         loadState();
       };
