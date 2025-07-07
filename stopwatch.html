@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Stopwatch with Lap Times</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #fff;
+        color: #111;
+        text-align: center;
+        padding: 40px 20px;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+      }
+
+      #time {
+        font-size: 4rem;
+        font-weight: 900;
+        letter-spacing: 3px;
+      }
+
+      button {
+        font-size: 1rem;
+        padding: 12px 20px;
+        border: 2px solid #000;
+        border-radius: 10px;
+        background-color: #fff;
+        color: #000;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-weight: 600;
+        margin: 5px;
+      }
+
+      button:hover:not(:disabled) {
+        background-color: #000;
+        color: #fff;
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .counts,
+      table {
+        background-color: #fff;
+        color: #111;
+      }
+
+      .counts {
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 0 10px #0002;
+      }
+
+      table {
+        border-collapse: collapse;
+        width: 90%;
+        max-width: 600px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+
+      th,
+      td {
+        padding: 12px;
+        border-bottom: 1px solid #ccc;
+      }
+
+      th {
+        background: #eee;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="time">00:00:00:000</div>
+
+    <div>
+      <button id="toggle">Play</button>
+      <button id="reset">Reset</button>
+    </div>
+
+    <div>
+      <button id="btnA">Button A</button>
+      <button id="btnB">Button B</button>
+      <button id="btnC">Button C</button>
+      <button id="btnD">Button D</button>
+    </div>
+
+    <div class="counts">
+      <div>Button A Clicks: <span id="countA">0</span></div>
+      <div>Button B Clicks: <span id="countB">0</span></div>
+      <div>Button C Clicks: <span id="countC">0</span></div>
+      <div>Button D Clicks: <span id="countD">0</span></div>
+      <div><strong>Total:</strong> <span id="total">0</span></div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Button</th>
+          <th>Lap Time</th>
+          <th>Overall Time</th>
+        </tr>
+      </thead>
+      <tbody id="logTable"></tbody>
+    </table>
+
+    <audio
+      id="clickSound"
+      src="https://www.soundjay.com/buttons/button-16.mp3"
+      preload="auto"
+    ></audio>
+
+    <script>
+      let timer,
+        startTime = 0,
+        elapsedTime = 0,
+        running = false;
+      let lastClickTime = null;
+      const clicks = { A: 0, B: 0, C: 0, D: 0 };
+      const log = [];
+
+      const $ = (id) => document.getElementById(id);
+      const sound = $("clickSound");
+
+      const formatMMSSms = (ms) => {
+        const m = Math.floor(ms / 60000),
+          s = Math.floor((ms % 60000) / 1000),
+          msms = Math.floor((ms % 1000) / 10);
+        return `${String(m).padStart(2, "0")}:${String(s).padStart(
+          2,
+          "0"
+        )}.${String(msms).padStart(2, "0")}`;
+      };
+
+      const formatFull = (ms) => {
+        const h = Math.floor(ms / 3600000),
+          m = Math.floor((ms % 3600000) / 60000),
+          s = Math.floor((ms % 60000) / 1000),
+          msms = Math.floor(ms % 1000);
+        return `${String(h).padStart(2, "0")}:${String(m).padStart(
+          2,
+          "0"
+        )}:${String(s).padStart(2, "0")}:${String(msms).padStart(3, "0")}`;
+      };
+
+      function updateTime() {
+        $("time").textContent = formatFull(elapsedTime);
+      }
+
+      function updateCounts() {
+        $("countA").textContent = clicks.A;
+        $("countB").textContent = clicks.B;
+        $("countC").textContent = clicks.C;
+        $("countD").textContent = clicks.D;
+        $("total").textContent = clicks.A + clicks.B + clicks.C + clicks.D;
+      }
+
+      function logClick(btn) {
+        const now = elapsedTime;
+        const lap = lastClickTime !== null ? now - lastClickTime : now;
+        lastClickTime = now;
+        log.unshift({
+          button: btn,
+          lap: formatMMSSms(lap),
+          overall: formatMMSSms(now),
+        });
+        renderTable();
+      }
+
+      function renderTable() {
+        const tbody = $("logTable");
+        tbody.innerHTML = log
+          .map(
+            (l) =>
+              `<tr><td>${l.button}</td><td>${l.lap}</td><td>${l.overall}</td></tr>`
+          )
+          .join("");
+      }
+
+      function start() {
+        startTime = Date.now() - elapsedTime;
+        timer = setInterval(() => {
+          elapsedTime = Date.now() - startTime;
+          updateTime();
+        }, 10);
+      }
+
+      function stop() {
+        clearInterval(timer);
+      }
+
+      function handleClick(btn) {
+        if (!running) return;
+        clicks[btn]++;
+        updateCounts();
+        logClick(btn);
+        sound.currentTime = 0;
+        sound.play();
+      }
+
+      ["btnA", "btnB", "btnC", "btnD"].forEach((id) => {
+        $(id).onclick = () => handleClick(id.slice(-1));
+      });
+
+      $("toggle").onclick = () => {
+        running = !running;
+        if (running) start();
+        else stop();
+        $("toggle").textContent = running ? "Pause" : "Play";
+      };
+
+      $("reset").onclick = () => {
+        if (!confirm("Reset everything?")) return;
+        stop();
+        elapsedTime = 0;
+        lastClickTime = null;
+        running = false;
+        $("toggle").textContent = "Play";
+        Object.keys(clicks).forEach((k) => (clicks[k] = 0));
+        log.length = 0;
+        updateCounts();
+        renderTable();
+        updateTime();
+      };
+
+      updateTime();
+      updateCounts();
+    </script>
+  </body>
+</html>
