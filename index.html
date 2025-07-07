@@ -35,6 +35,8 @@
         transition: all 0.3s;
         font-weight: 600;
         margin: 5px;
+        flex: 1;
+        min-width: 120px;
       }
 
       button:hover:not(:disabled) {
@@ -75,28 +77,49 @@
       th {
         background: #eee;
       }
+
+      /* New styles for button rows */
+      .button-row {
+        display: flex;
+        gap: 10px;
+        width: 100%;
+        max-width: 600px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      /* Make buttons take half row width on mobile */
+      @media (max-width: 600px) {
+        .button-row button {
+          flex: 1 1 45%;
+          min-width: auto;
+        }
+      }
     </style>
   </head>
   <body>
     <div id="time">00:00:00:000</div>
 
-    <div>
+    <div class="button-row">
       <button id="toggle">Play</button>
       <button id="reset">Reset</button>
     </div>
 
-    <div>
+    <div class="button-row">
       <button id="btnA">Alertable</button>
-      <button id="btnB">Not Alertable</button>
-      <button id="btnC">Not determine</button>
-      <button id="btnD">Unable to access</button>
+      <button id="btnB">Non Alertable</button>
+    </div>
+
+    <div class="button-row">
+      <button id="btnC">Button C</button>
+      <button id="btnD">Button D</button>
     </div>
 
     <div class="counts">
-      <div>Alertable: <span id="countA">0</span></div>
-      <div>Not Alertable: <span id="countB">0</span></div>
-      <div>Not determine: <span id="countC">0</span></div>
-      <div>Unable to access: <span id="countD">0</span></div>
+      <div>Button A Clicks: <span id="countA">0</span></div>
+      <div>Button B Clicks: <span id="countB">0</span></div>
+      <div>Button C Clicks: <span id="countC">0</span></div>
+      <div>Button D Clicks: <span id="countD">0</span></div>
       <div><strong>Total:</strong> <span id="total">0</span></div>
     </div>
 
@@ -125,6 +148,9 @@
       let lastClickTime = null;
       const clicks = { A: 0, B: 0, C: 0, D: 0 };
       const log = [];
+
+      const lastButtonClickTimes = { A: 0, B: 0, C: 0, D: 0 };
+      const CLICK_DELAY_MS = 4000; // 4 seconds
 
       const $ = (id) => document.getElementById(id);
       const sound = $("clickSound");
@@ -158,6 +184,7 @@
           clicks,
           log,
           startTime: running ? startTime : null,
+          lastButtonClickTimes,
         };
         localStorage.setItem("stopwatchState", JSON.stringify(state));
       }
@@ -176,6 +203,7 @@
           if (state.log && Array.isArray(state.log)) {
             log.push(...state.log);
           }
+          Object.assign(lastButtonClickTimes, state.lastButtonClickTimes || { A: 0, B: 0, C: 0, D: 0 });
 
           if (running && state.startTime) {
             startTime = Date.now() - elapsedTime;
@@ -244,6 +272,16 @@
 
       function handleClick(btn) {
         if (!running) return;
+
+        const nowTimestamp = Date.now();
+        const lastClick = lastButtonClickTimes[btn] || 0;
+        if (nowTimestamp - lastClick < CLICK_DELAY_MS) {
+          // Ignore click if less than 4 seconds since last click for this button
+          return;
+        }
+
+        lastButtonClickTimes[btn] = nowTimestamp;
+
         clicks[btn]++;
         updateCounts();
         logClick(btn);
@@ -272,17 +310,18 @@
         $("toggle").textContent = "Play";
         Object.keys(clicks).forEach((k) => (clicks[k] = 0));
         log.length = 0;
+        Object.keys(lastButtonClickTimes).forEach(k => lastButtonClickTimes[k] = 0);
         updateCounts();
         renderTable();
         updateTime();
         saveState();
       };
 
-      // Alert on page reload or close
+      // Confirm before leaving page
       window.addEventListener("beforeunload", function (e) {
         const confirmationMessage = "Are you sure you want to leave? Your stopwatch state will be lost if not saved.";
-        (e || window.event).returnValue = confirmationMessage; // For old browsers
-        return confirmationMessage; // For modern browsers
+        (e || window.event).returnValue = confirmationMessage;
+        return confirmationMessage;
       });
 
       window.onload = () => {
