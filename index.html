@@ -78,7 +78,14 @@
         background: #eee;
       }
 
-      /* New styles for button rows */
+      .fastest {
+        background-color: #d4edda; /* light green */
+      }
+
+      .slowest {
+        background-color: #f8d7da; /* light red */
+      }
+
       .button-row {
         display: flex;
         gap: 10px;
@@ -88,7 +95,6 @@
         flex-wrap: wrap;
       }
 
-      /* Make buttons take half row width on mobile */
       @media (max-width: 600px) {
         .button-row button {
           flex: 1 1 45%;
@@ -111,15 +117,15 @@
     </div>
 
     <div class="button-row">
-      <button id="btnC">Not able</button>
+      <button id="btnC"Not able</button>
       <button id="btnD">not access page</button>
     </div>
 
     <div class="counts">
-      <div>Button A Clicks: <span id="countA">0</span></div>
-      <div>Button B Clicks: <span id="countB">0</span></div>
-      <div>Button C Clicks: <span id="countC">0</span></div>
-      <div>Button D Clicks: <span id="countD">0</span></div>
+      <div>Alertable: <span id="countA">0</span></div>
+      <div>Non Alertable: <span id="countB">0</span></div>
+      <div>Not able: <span id="countC">0</span></div>
+      <div>not access page: <span id="countD">0</span></div>
       <div><strong>Total:</strong> <span id="total">0</span></div>
     </div>
 
@@ -148,9 +154,8 @@
       let lastClickTime = null;
       const clicks = { A: 0, B: 0, C: 0, D: 0 };
       const log = [];
-
       const lastButtonClickTimes = { A: 0, B: 0, C: 0, D: 0 };
-      const CLICK_DELAY_MS = 4000; // 4 seconds
+      const CLICK_DELAY_MS = 4000;
 
       const $ = (id) => document.getElementById(id);
       const sound = $("clickSound");
@@ -240,7 +245,8 @@
         lastClickTime = now;
         log.unshift({
           button: btn,
-          lap: formatMMSSms(lap),
+          lap,
+          lapFormatted: formatMMSSms(lap),
           overall: formatMMSSms(now),
         });
         renderTable();
@@ -249,12 +255,22 @@
 
       function renderTable() {
         const tbody = $("logTable");
-        tbody.innerHTML = log
-          .map(
-            (l) =>
-              `<tr><td>${l.button}</td><td>${l.lap}</td><td>${l.overall}</td></tr>`
-          )
-          .join("");
+        tbody.innerHTML = "";
+
+        if (log.length === 0) return;
+
+        const lapTimes = log.map((l) => l.lap);
+        const minLap = Math.min(...lapTimes);
+        const maxLap = Math.max(...lapTimes);
+
+        log.forEach((l) => {
+          const row = document.createElement("tr");
+          if (l.lap === minLap) row.classList.add("fastest");
+          if (l.lap === maxLap) row.classList.add("slowest");
+
+          row.innerHTML = `<td>${l.button}</td><td>${l.lapFormatted}</td><td>${l.overall}</td>`;
+          tbody.appendChild(row);
+        });
       }
 
       function start() {
@@ -275,10 +291,7 @@
 
         const nowTimestamp = Date.now();
         const lastClick = lastButtonClickTimes[btn] || 0;
-        if (nowTimestamp - lastClick < CLICK_DELAY_MS) {
-          // Ignore click if less than 4 seconds since last click for this button
-          return;
-        }
+        if (nowTimestamp - lastClick < CLICK_DELAY_MS) return;
 
         lastButtonClickTimes[btn] = nowTimestamp;
 
@@ -317,16 +330,13 @@
         saveState();
       };
 
-      // Confirm before leaving page
       window.addEventListener("beforeunload", function (e) {
-        const confirmationMessage = "Are you sure you want to leave? Your stopwatch state will be lost if not saved.";
+        const confirmationMessage = "Are you sure you want to leave?";
         (e || window.event).returnValue = confirmationMessage;
         return confirmationMessage;
       });
 
-      window.onload = () => {
-        loadState();
-      };
+      window.onload = loadState;
     </script>
   </body>
 </html>
