@@ -150,8 +150,51 @@
         )}:${String(s).padStart(2, "0")}:${String(msms).padStart(3, "0")}`;
       };
 
+      function saveState() {
+        const state = {
+          elapsedTime,
+          running,
+          lastClickTime,
+          clicks,
+          log,
+          startTime: running ? startTime : null,
+        };
+        localStorage.setItem("stopwatchState", JSON.stringify(state));
+      }
+
+      function loadState() {
+        const stateStr = localStorage.getItem("stopwatchState");
+        if (!stateStr) return;
+
+        try {
+          const state = JSON.parse(stateStr);
+          elapsedTime = state.elapsedTime || 0;
+          running = state.running || false;
+          lastClickTime = state.lastClickTime;
+          Object.assign(clicks, state.clicks || { A: 0, B: 0, C: 0, D: 0 });
+          log.length = 0;
+          if (state.log && Array.isArray(state.log)) {
+            log.push(...state.log);
+          }
+
+          if (running && state.startTime) {
+            startTime = Date.now() - elapsedTime;
+            start();
+          } else {
+            updateTime();
+          }
+
+          updateCounts();
+          renderTable();
+          $("toggle").textContent = running ? "Pause" : "Play";
+        } catch (e) {
+          console.error("Failed to load stopwatch state", e);
+        }
+      }
+
       function updateTime() {
         $("time").textContent = formatFull(elapsedTime);
+        saveState();
       }
 
       function updateCounts() {
@@ -160,6 +203,7 @@
         $("countC").textContent = clicks.C;
         $("countD").textContent = clicks.D;
         $("total").textContent = clicks.A + clicks.B + clicks.C + clicks.D;
+        saveState();
       }
 
       function logClick(btn) {
@@ -172,6 +216,7 @@
           overall: formatMMSSms(now),
         });
         renderTable();
+        saveState();
       }
 
       function renderTable() {
@@ -194,6 +239,7 @@
 
       function stop() {
         clearInterval(timer);
+        saveState();
       }
 
       function handleClick(btn) {
@@ -214,6 +260,7 @@
         if (running) start();
         else stop();
         $("toggle").textContent = running ? "Pause" : "Play";
+        saveState();
       };
 
       $("reset").onclick = () => {
@@ -228,10 +275,12 @@
         updateCounts();
         renderTable();
         updateTime();
+        saveState();
       };
 
-      updateTime();
-      updateCounts();
+      window.onload = () => {
+        loadState();
+      };
     </script>
   </body>
 </html>
